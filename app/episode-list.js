@@ -13,26 +13,43 @@ var {
   TouchableHighlight,
 } = React;
 
+var LOAD_NEXT_PAGE_HOLDER = 'LoadNextPageHolder';
+
 var EpisodeList = React.createClass({
   getInitialState: function() {
     return {
+      episodes: [],
+      pageIndex: 0,
+      loading: false,
       dataSource: new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2}),
     };
   },
   render: function() {
+    console.log('rendering:' + this.state.loading);
     return (
       <ListView style={styles.episodeList} dataSource={this.state.dataSource} renderRow={(rowData) => 
         <TouchableHighlight underlayColor='#3b3b3b' onPress={this._viewEpisode.bind(this, rowData)}>
           <View style={styles.episodeItemContainer}>
-            <Text style={styles.episodeTitle}>{rowData.title}</Text>
-            <Text style={styles.episodeDescription}>{rowData.description}</Text>
+            {rowData == LOAD_NEXT_PAGE_HOLDER ? <Text style={styles.loadNextPageHolder}>{this.state.loading ? 'Loading..' : 'Show More..'}</Text> 
+              : <View>
+                  <Text style={styles.episodeTitle}>{rowData.title}</Text>
+                  <Text style={styles.episodeDescription}>{rowData.description}</Text>
+                  </View>
+            }
           </View>
         </TouchableHighlight>}>
       </ListView>
     );
   },
   componentDidMount: function() {
-    fetch("https://www.eslpod.com/website/show_all.php?low_rec=0")
+    this._fetchNextPage();
+  },
+  _fetchNextPage: function() {
+    var state = this.state;
+    state.loading = true;
+    this.setState(state);
+
+    fetch("https://www.eslpod.com/website/show_all.php?low_rec=" + this.state.pageIndex * 20)
       .then((response) => {
         return response.text();
       })
@@ -61,8 +78,13 @@ var EpisodeList = React.createClass({
         return episodes;
       })
       .then((episodes) => {
+        var existsEpisodes = this.state.episodes || [];
+        existsEpisodes = existsEpisodes.concat(episodes);
         this.setState({
-          dataSource: this.state.dataSource.cloneWithRows(episodes)
+          pageIndex: this.state.pageIndex + 1,
+          episodes: existsEpisodes,
+          loading: false,
+          dataSource: this.state.dataSource.cloneWithRows(existsEpisodes.length == 0 ? [] : [...existsEpisodes, LOAD_NEXT_PAGE_HOLDER]),
         });
       })
       .catch((error) => {
@@ -70,13 +92,17 @@ var EpisodeList = React.createClass({
       });
   },
   _viewEpisode: function(episode) {
-    this.props.navigator.push({
-    	component: EpisodeDetail,
-    	title: episode.title,
-    	passProps: {
-    		episode: episode
-    	}
-    });
+    if (episode == LOAD_NEXT_PAGE_HOLDER) {
+      this._fetchNextPage();
+    } else {
+      this.props.navigator.push({
+        component: EpisodeDetail,
+        title: episode.title,
+        passProps: {
+          episode: episode
+        }
+      });
+    }
   },
 });
 
@@ -100,6 +126,13 @@ var styles = StyleSheet.create({
   episodeDescription: {
     color: '#333333',
   },
+  loadNextPageHolder: {
+    fontWeight: 'bold',
+    height: 45,
+    lineHeight: 30,
+    textAlign: 'center',
+    fontSize: 16,
+  }
 });
 
 module.exports = EpisodeList;

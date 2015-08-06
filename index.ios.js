@@ -23,4 +23,4 @@ var Root = React.createClass({
   }
 });
 
-AppRegistry.registerComponent('EnglishPod', () => Root);
+AppRegistry.registerComponent('ESLPodcast', () => Root);
