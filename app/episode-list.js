@@ -11,6 +11,7 @@ var {
   View,
   ListView,
   TouchableHighlight,
+  ActivityIndicatorIOS,
 } = React;
 
 var LOAD_NEXT_PAGE_HOLDER = 'LoadNextPageHolder';
@@ -25,16 +26,19 @@ var EpisodeList = React.createClass({
     };
   },
   render: function() {
-    console.log('rendering:' + this.state.loading);
+    if (this.state.episodes.length == 0) {
+      return (<View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}><ActivityIndicatorIOS size='large' color='gray' /></View>);
+    }
     return (
       <ListView style={styles.episodeList} dataSource={this.state.dataSource} renderRow={(rowData) => 
         <TouchableHighlight underlayColor='#3b3b3b' onPress={this._viewEpisode.bind(this, rowData)}>
           <View style={styles.episodeItemContainer}>
-            {rowData == LOAD_NEXT_PAGE_HOLDER ? <Text style={styles.loadNextPageHolder}>{this.state.loading ? 'Loading..' : 'Show More..'}</Text> 
+            {rowData == LOAD_NEXT_PAGE_HOLDER 
+              ? <Text style={styles.loadNextPageHolder}>{this.state.loading ? 'Loading..' : 'Show More..'}</Text> 
               : <View>
                   <Text style={styles.episodeTitle}>{rowData.title}</Text>
                   <Text style={styles.episodeDescription}>{rowData.description}</Text>
-                  </View>
+                </View>
             }
           </View>
         </TouchableHighlight>}>
@@ -45,7 +49,7 @@ var EpisodeList = React.createClass({
     this._fetchNextPage();
   },
   _fetchNextPage: function() {
-    var state = this.state;
+    var state = {...this.state};
     state.loading = true;
     this.setState(state);
 
@@ -89,11 +93,18 @@ var EpisodeList = React.createClass({
       })
       .catch((error) => {
         console.warn(error);
+        var state = {...this.state};
+        state.loading = false;
+        this.setState(state);
       });
   },
   _viewEpisode: function(episode) {
     if (episode == LOAD_NEXT_PAGE_HOLDER) {
-      this._fetchNextPage();
+      if (!this.state.loading) {
+        this._fetchNextPage();
+      } else {
+        console.warn('still loading episodes');
+      }
     } else {
       this.props.navigator.push({
         component: EpisodeDetail,

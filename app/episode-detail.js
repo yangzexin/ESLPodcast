@@ -27,7 +27,6 @@ var EpisodeDetail = React.createClass({
 		};
 	},
 	componentWillMount: function() {
-
 		fetch(this.props.episode.detailURL)
 			.then((response) => response.text())
 			.then(responseText => {
